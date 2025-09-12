@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <section class="hospitals-section">
+        <h2 class="section-title"><i class="fas fa-hospital-alt"></i> Hospitals</h2>
+        <div class="hospital-cards" id="hospitalCards">
+            {% for hospital in hospitals %}
+                <div class="hospital-card" onclick="openResourceModal({{ hospital.id }}, '{{ hospital.name }}')">
+                <h3>{{ hospital.name }}</h3>
+                <p>{{ hospital.address }}</p>
+                <p><strong>Total Beds:</strong> {{ hospital.total_beds }}</p>
+                <!-- Add more details as you want -->
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+
+<div id="resourceModal" class="modal">
+  <div class="modal-content">
+    <button class="close-modal" onclick="closeResourceModal()">&times;</button>
+    <h3 id="modalHospitalName"></h3>
+    <select id="intervalSelect" onchange="loadGraphData()">
+      <option value="1h">Last 1 Hour</option>
+      <option value="1d" selected>Last 1 Day</option>
+      <option value="1w">Last 1 Week</option>
+      <option value="1m">Last 1 Month</option>
+    </select>
+    <canvas id="resourceChart"></canvas>
+  </div>
+</div>
+
+
+{% endblock %}

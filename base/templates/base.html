@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MediFind - Smart Healthcare Resource Finder{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<body>
+    <!-- Header & Navigation -->
+    <header>
+        <div class="container">
+            <div class="navbar">
+                <div class="logo">
+                    <i class="fas fa-hospital"></i>
+                    <span>MediFind</span>
+                </div>
+                <div class="nav-links">
+                    <a href="{% url 'hospitals:home' %}" class="active">Home</a>
+                    <a href="{% url 'hospitals:hospitals' %}">Find Hospitals</a>
+                    <a href="{% url 'hospitals:map' %}">Map</a>
+                    <a href="#account">My Account</a>
+                    <a href="#help">Help</a>
+                </div>
+                <div class="nav-actions">
+                    {% if user.is_authenticated %}
+                        <span class="user-greeting">Hello, {{ user.first_name|default:user.username }}!</span>
+                        <a href="{% url 'admin:logout' %}" class="btn btn-outline">Logout</a>
+                    {% else %}
+                        <button class="btn btn-outline" id="loginBtn">Login</button>
+                        <button class="btn btn-primary" id="registerBtn">Register</button>
+                    {% endif %}
+                </div>
+                <button class="mobile-menu-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Authentication Modal -->
+    {% if not user.is_authenticated %}
+    <div class="modal" id="authModal">
+        <div class="modal-content">
+            <button class="close-modal">&times;</button>
+            <div class="modal-tabs">
+                <div class="modal-tab active" data-tab="login">Login</div>
+                <div class="modal-tab" data-tab="register">Register</div>
+            </div>
+            
+            <div id="loginForm">
+                <form method="post" action="{% url 'admin:login' %}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="loginEmail">Username or Email</label>
+                        <input type="text" name="username" id="loginEmail" placeholder="Enter your username or email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" name="password" id="loginPassword" placeholder="Enter your password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+                </form>
+            </div>
+            
+            <div id="registerForm" style="display: none;">
+                <div class="form-group">
+                    <label for="registerName">Full Name</label>
+                    <input type="text" id="registerName" placeholder="Enter your full name" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPhone">Phone Number</label>
+                    <input type="tel" id="registerPhone" placeholder="Enter your phone number" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Password</label>
+                    <input type="password" id="registerPassword" placeholder="Create a password" required>
+                </div>
+                <button type="button" class="btn btn-primary" style="width: 100%;">Create Account</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Emergency Button -->
+    <div class="emergency-btn" title="Emergency Contacts">
+        <i class="fas fa-phone-alt"></i>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>MediFind</h3>
+                    <p>Finding the right healthcare resources when you need them the most. Available 24/7 for emergency situations.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <ul class="footer-links">
+                        <li><a href="{% url 'hospitals:home' %}">Home</a></li>
+                        <li><a href="{% url 'hospitals:hospitals' %}">Find Hospitals</a></li>
+                        <li><a href="{% url 'hospitals:map' %}">Map View</a></li>
+                        <li><a href="#account">My Account</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Help & Support</h3>
+                    <ul class="footer-links">
+                        <li><a href="#booking">How to Book a Bed</a></li>
+                        <li><a href="#availability">Understanding Availability</a></li>
+                        <li><a href="#faq">FAQ</a></li>
+                        <li><a href="#contact">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Emergency Contacts</h3>
+                    <div class="emergency-contacts-footer">
+                        <div class="emergency-contact-item">
+                            <strong>Ambulance:</strong> 108
+                        </div>
+                        <div class="emergency-contact-item">
+                            <strong>Emergency:</strong> 102
+                        </div>
+                        <div class="emergency-contact-item">
+                            <strong>COVID Helpline:</strong> 1075
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; 2024 MediFind. All rights reserved. | Privacy Policy | Terms of Service</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <i class="fas fa-info-circle"></i>
+        <div class="notification-content">System notification</div>
+    </div>
+
+    <script src="{% static 'js/main.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,258 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Hero Section with Background Image -->
+<section class="hero">
+    <div class="hero-background"></div>
+    <div class="hero-overlay"></div>
+    <div class="container">
+        <div class="hero-content">
+            <h1>Find Healthcare Resources Near You</h1>
+            <p>Quickly locate hospitals, check bed availability, and get real-time updates on medical resources in your area</p>
+            
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Search by hospital, city, or resource..." id="searchInput">
+                <button class="search-btn" id="searchBtn">
+                    <i class="fas fa-search"></i>
+                    Search
+                </button>
+            </div>
+            
+            <div class="quick-filters">
+                <div class="filter-pill" data-filter="beds">
+                    <i class="fas fa-bed"></i>
+                    <span>General Beds</span>
+                </div>
+                <div class="filter-pill" data-filter="icu">
+                    <i class="fas fa-procedures"></i>
+                    <span>ICU Beds</span>
+                </div>
+                <div class="filter-pill" data-filter="ventilators">
+                    <i class="fas fa-lungs"></i>
+                    <span>Ventilators</span>
+                </div>
+                <div class="filter-pill" data-filter="oxygen">
+                    <i class="fas fa-air-freshener"></i>
+                    <span>Oxygen Supply</span>
+                </div>
+                <div class="filter-pill" data-filter="emergency">
+                    <i class="fas fa-ambulance"></i>
+                    <span>Emergency</span>
+                </div>
+            </div>
+
+            <div class="stats-container">
+                <div class="stat-item">
+                    <div class="stat-number">{{ total_hospitals }}</div>
+                    <div class="stat-label">Total Hospitals</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ available_hospitals }}</div>
+                    <div class="stat-label">Available Now</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-label">Real-time Updates</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Main Content -->
+<div class="container">
+    <section class="hospitals-section" id="hospitals">
+        <h2 class="section-title">
+            <i class="fas fa-hospital-alt"></i>
+            Nearby Hospitals & Medical Centers
+        </h2>
+        
+        <!-- Availability Controls -->
+        <div class="availability-controls">
+            <div class="sort-filter-container">
+                <select class="sort-select" id="sortSelect">
+                    <option value="distance">Closest First</option>
+                    <option value="availability">Highest Availability</option>
+                    <option value="critical">Critical Care First</option>
+                    <option value="updated">Recently Updated</option>
+                </select>
+                
+                <select class="filter-select" id="filterSelect">
+                    <option value="all">All Resources</option>
+                    <option value="beds">General Beds</option>
+                    <option value="icu">ICU Beds</option>
+                    <option value="ventilators">Ventilators</option>
+                    <option value="oxygen">Oxygen Supply</option>
+                </select>
+            </div>
+            
+            <button class="refresh-btn" id="refreshBtn">
+                <i class="fas fa-sync-alt"></i>
+                Refresh Data
+            </button>
+        </div>
+        
+        <div class="last-updated" id="lastUpdated">
+            Last updated: Just now
+        </div>
+        
+        <!-- Hospital Cards -->
+        <div class="hospital-cards" id="hospitalCards">
+            <div class="hospital-cards" id="hospitalCards"></div>
+        </div>
+    </section>
+<!-- Map Section -->
+<section class="map-section" id="map">
+    <h2 class="section-title">
+        <i class="fas fa-map-marked-alt"></i>
+        Interactive Resource Map
+    </h2>
+
+    <div class="map-container">
+        <div class="map-overlay">
+            <div class="map-legend">
+                <h4>Legend</h4>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <div class="availability-indicator availability-high"></div>
+                        <span>High Availability</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="availability-indicator availability-medium"></div>
+                        <span>Medium Availability</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="availability-indicator availability-low"></div>
+                        <span>Low Availability</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="hospitalMap" style="height: 500px; width: 100%; border-radius: 12px; overflow: hidden;"></div>
+
+        <!-- Resource filter for map -->
+        <div class="map-filters" style="margin-top: 10px;">
+            <label>Show Resource: </label>
+            <select id="mapResourceSelect">
+                <option value="beds">General Beds</option>
+                <option value="icu">ICU Beds</option>
+                <option value="ventilators">Ventilators</option>
+                <option value="oxygen">Oxygen Supply</option>
+            </select>
+        </div>
+    </div>
+</section>
+
+{% block extra_js %}
+<script src="{% static 'js/main.js' %}"></script>
+
+<!-- Inline Leaflet Map JS -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    let hospitalMap = L.map("hospitalMap").setView([19.0760, 72.8777], 12);
+    let hospitalMarkers = [];
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(hospitalMap);
+
+    async function loadHospitalMarkers() {
+        try {
+            const response = await fetch("/api/hospitals/");
+            const data = await response.json();
+
+            
+
+            // Clear existing markers
+            hospitalMarkers.forEach(marker => hospitalMap.removeLayer(marker));
+            hospitalMarkers = [];
+
+            const selectedResource = document.getElementById("mapResourceSelect").value;
+
+            data.hospitals.forEach(hospital => {
+                const lat = hospital.latitude;
+                const lon = hospital.longitude;
+                if (!lat || !lon) return;
+
+                // Determine availability
+                let value = 0, total = 0;
+                switch (selectedResource) {
+                    case "beds":
+                        value = hospital.general_beds_available ?? hospital.beds_available ?? 0;
+                        total = hospital.general_beds_total ?? hospital.beds_total ?? 0;
+                        break;
+                    case "icu":
+                        value = hospital.icu_beds_available ?? hospital.icu_available ?? 0;
+                        total = hospital.icu_beds_total ?? hospital.icu_total ?? 0;
+                        break;
+                    case "ventilators":
+                        value = hospital.ventilators_available ?? hospital.ventilators_available ?? 0;
+                        total = hospital.ventilators_total ?? hospital.ventilators_total ?? 0;
+                        break;
+                    case "oxygen":
+                        value = hospital.oxygen_available ?? hospital.oxygen ?? 0;
+                        total = 100; // approximate for color scaling
+                        break;
+                }
+
+                const percent = total > 0 ? (value / total) * 100 : 0;
+                let color = "red";
+                if (percent > 50) color = "green";
+                else if (percent > 20) color = "yellow";
+
+                const marker = L.circleMarker([lat, lon], {
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: 0.7,
+                    radius: 10
+                });
+
+                marker.bindPopup(`
+                    <b>${hospital.name}</b><br>
+                    ${hospital.address}<br>
+                    General Beds: ${hospital.general_beds_available}/${hospital.general_beds_total}<br>
+                    ICU Beds: ${hospital.icu_beds_available}/${hospital.icu_beds_total}<br>
+                    Ventilators: ${hospital.ventilators_available}/${hospital.ventilators_total}<br>
+                    Oxygen: ${hospital.oxygen_available ?? hospital.oxygen}<br>
+                    Doctors: ${hospital.doctors}<br>
+                    Nurses: ${hospital.nurses}<br>
+                    Last Updated: ${new Date(hospital.last_updated).toLocaleString()}
+                `);
+
+                marker.addTo(hospitalMap);
+                hospitalMarkers.push(marker);
+            });
+        } catch (error) {
+            console.error("Error loading hospitals for map:", error);
+        }
+    }
+
+    // Initial load
+    loadHospitalMarkers();
+
+    // Resource filter change
+    document.getElementById("mapResourceSelect").addEventListener("change", () => {
+        loadHospitalMarkers();
+    });
+
+    // Optional: auto-refresh every 2 minutes
+    setInterval(loadHospitalMarkers, 120000);
+});
+</script>
+{% endblock %}
+
+
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+
+<script src="{% static 'js/main.js' %}">
+
+</script>
+{% endblock %}
